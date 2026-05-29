@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>⚓ Batalha Naval | Jogo Clássico</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            background: linear-gradient(145deg, #0a2f4a 0%, #06212e 100%);
+            font-family: 'Segoe UI', 'Roboto', 'Poppins', system-ui, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* Container principal */
+        .game-container {
+            background: rgba(0, 20, 35, 0.7);
+            backdrop-filter: blur(3px);
+            border-radius: 3rem;
+            padding: 1.5rem;
+            box-shadow: 0 20px 35px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.1);
+            border: 1px solid #2c6e8f;
+        }
+
+        /* cabeçalho */
+        .game-header {
+            text-align: center;
+            margin-bottom: 1.8rem;
+        }
+        h1 {
+            font-size: 2rem;
+            margin: 0;
+            color: #FFE6C7;
+            text-shadow: 0 4px 8px #00000055;
+            letter-spacing: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+        h1 span {
+            font-size: 2rem;
+        }
+        .turn-status {
+            background: #071e2b;
+            display: inline-block;
+            padding: 6px 18px;
+            border-radius: 60px;
+            margin-top: 10px;
+            font-weight: bold;
+            font-size: 1rem;
+            color: #FFD966;
+            box-shadow: inset 0 1px 3px #00000033, 0 2px 4px #00000044;
+            backdrop-filter: blur(4px);
+        }
+        .turn-status span {
+            color: #f5c542;
+        }
+
+        /* dois campos lado a lado */
+        .boards-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 1.8rem;
+        }
+        .board-card {
+            background: #01131ecc;
+            backdrop-filter: blur(2px);
+            border-radius: 2rem;
+            padding: 1rem 1rem 1rem 1rem;
+            box-shadow: 0 12px 25px rgba(0,0,0,0.4);
+            border: 1px solid #2f7a9b;
+        }
+        .board-title {
+            text-align: center;
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: #e0eef7;
+            background: #0d3346;
+            display: inline-block;
+            width: 100%;
+            padding: 6px 0;
+            border-radius: 40px;
+            letter-spacing: 1px;
+        }
+        .board-title i {
+            margin-right: 8px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(10, 38px);
+            grid-template-rows: repeat(10, 38px);
+            gap: 3px;
+            background-color: #1f4f66;
+            padding: 8px;
+            border-radius: 20px;
+            box-shadow: inset 0 0 0 2px #3b8db0, 0 6px 12px black;
+        }
+        .cell {
+            background-color: #1f6e8a;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.08s linear;
+            box-shadow: inset 0 -1px 0 #0f4b60, 0 1px 2px rgba(0,0,0,0.2);
+            color: white;
+            text-shadow: 0 0 2px black;
+        }
+        /* efeito hover apenas em células ativas */
+        .cell.attackable:hover {
+            transform: scale(0.96);
+            background-color: #2f9ec2;
+            cursor: pointer;
+            box-shadow: inset 0 0 0 2px #ffcf4a;
+        }
+        /* estilos específicos para o tabuleiro do jogador (navios visíveis) */
+        .player-cell-ship {
+            background-color: #2b7c6e;
+            background-image: radial-gradient(circle at 30% 35%, #3ea391, #1a5e52);
+            color: #F9F3C5;
+            font-size: 1rem;
+        }
+        .cell-hit {
+            background-color: #b73c2c !important;
+            box-shadow: inset 0 0 0 1px #ffaa88;
+            color: white;
+        }
+        .cell-miss {
+            background-color: #2c5668 !important;
+            color: #bbd4e6;
+        }
+        .cell-sunk {
+            background-color: #4a1a12 !important;
+            color: #ffb347;
+            text-decoration: line-through;
+        }
+        /* legenda / info */
+        .info-panel {
+            background: #03141fcc;
+            border-radius: 2rem;
+            padding: 12px 18px;
+            margin-top: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            backdrop-filter: blur(4px);
+        }
+        .message-area {
+            background: #00000077;
+            padding: 8px 16px;
+            border-radius: 40px;
+            font-weight: bold;
+            color: #fff5e0;
+            font-size: 0.9rem;
+            flex: 2;
+            min-width: 180px;
+            text-align: center;
+            letter-spacing: 0.5px;
+        }
+        button {
+            background: #e49b3f;
+            border: none;
+            font-weight: bold;
+            padding: 8px 28px;
+            border-radius: 60px;
+            font-size: 1rem;
+            color: #1e2e2b;
+            cursor: pointer;
+            transition: 0.1s linear;
+            box-shadow: 0 4px 0 #7a471c;
+            font-family: inherit;
+        }
+        button:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #7a471c;
+        }
+        .ships-info {
+            font-size: 0.75rem;
+            background: #071e2b;
+            padding: 6px 14px;
+            border-radius: 48px;
+            color: #B9E6FF;
+        }
+        @media (max-width: 860px) {
+            .grid {
+                grid-template-columns: repeat(10, 30px);
+                grid-template-rows: repeat(10, 30px);
+                gap: 2px;
+            }
+            .cell {
+                font-size: 0.9rem;
+            }
+            .board-title {
+                font-size: 1rem;
+            }
+        }
+        @media (max-width: 700px) {
+            .grid {
+                grid-template-columns: repeat(10, 26px);
+                grid-template-rows: repeat(10, 26px);
+            }
+        }
+        footer {
+            text-align: center;
+            font-size: 0.7rem;
+            margin-top: 12px;
+            color: #86afc2;
+        }
+    </style>
+</head>
+<body>
+<div class="game-container">
+    <div class="game-header">
+        <h1>
+            <span>⚓</span> BATALHA NAVAL <span>🚢</span>
+        </h1>
+        <div class="turn-status" id="turnIndicator">
+            🎯 Seu turno - Ataque o inimigo!
+        </div>
+    </div>
+
+    <div class="boards-wrapper">
+        <!-- TABULEIRO DO JOGADOR (VISÍVEL) -->
+        <div class="board-card">
+            <div class="board-title"><i>⭐</i> SEU CAMPO <i>🛡️</i></div>
+            <div id="playerGrid" class="grid"></div>
+        </div>
+
+        <!-- TABULEIRO DO COMPUTADOR (ATAQUE) -->
+        <div class="board-card">
+            <div class="board-title"><i>🔥</i> CAMPO INIMIGO <i>🎯</i></div>
+            <div id="computerGrid" class="grid"></div>
+        </div>
+    </div>
+
+    <div class="info-panel">
+        <div class="ships-info" id="shipsStatus">🚢 Navios restantes: ---</div>
+        <div class="message-area" id="gameMessage">Clique no campo inimigo para atacar!</div>
+        <button id="resetButton">🔄 NOVA BATALHA</button>
+    </div>
+    <footer>💥 Acertos afundam navios • Turnos alternados • Sorte do almirante</footer>
+</div>
+
+<script>
+    (function(){
+        // ---------- CONFIGURAÇÕES ----------
+        const GRID_SIZE = 10;
+        // Definição dos navios (nome, tamanho)
+        const SHIP_DEFS = [
+            { name: "Porta-aviões", size: 5 },
+            { name: "Encouraçado", size: 4 },
+            { name: "Cruzador", size: 3 },
+            { name: "Submarino", size: 3 },
+            { name: "Destroyer", size: 2 }
+        ];
+
+        // ---------- ESTRUTURAS DE DADOS ----------
+        let playerBoard = [];      // 10x10 -> { ship: object|null, hit: boolean }
+        let computerBoard = [];    // 10x10 -> { ship: object|null, hit: boolean }
+        
+        let playerShips = [];      // lista de objetos dos navios do jogador
+        let computerShips = [];    // lista de objetos dos navios do computador
+        
+        let currentTurn = "player";   // "player" ou "computer"
+        let gameActive = true;
+        let computerTimeout = null;    // timeout para jogada do PC
+        
+        // Elementos DOM
+        const playerGridEl = document.getElementById("playerGrid");
+        const computerGridEl = document.getElementById("computerGrid");
+        const turnIndicator = document.getElementById("turnIndicator");
+        const gameMessage = document.getElementById("gameMessage");
+        const shipsStatus = document.getElementById("shipsStatus");
+        const resetBtn = document.getElementById("resetButton");
+        
+        // ---------- FUNÇÕES AUXILIARES ----------
+        function createEmptyBoard() {
+            const board = [];
+            for (let i = 0; i < GRID_SIZE; i++) {
+                board[i] = [];
+                for (let j = 0; j < GRID_SIZE; j++) {
+                    board[i][j] = { ship: null, hit: false };
+                }
+            }
+            return board;
+        }
+        
+        // Verifica se um navio pode ser colocado na posição
+        function canPlaceShip(board, row, col, orientation, size) {
+            if (orientation === "horizontal") {
+                if (col + size > GRID_SIZE) return false;
+                for (let c = col; c < col + size; c++) {
+                    if (board[row][c].ship !== null) return false;
+                }
+            } else { // vertical
+                if (row + size > GRID_SIZE) return false;
+                for (let r = row; r < row + size; r++) {
+                    if (board[r][col].ship !== null) return false;
+                }
+            }
+            return true;
+        }
+        
+        // Coloca um navio no tabuleiro (modifica board e populando ship nos cells)
+        function placeShipOnBoard(board, shipObj, row, col, orientation) {
+            const size = shipObj.size;
+            shipObj.positions = [];
+            if (orientation === "horizontal") {
+                for (let c = col; c < col + size; c++) {
+                    board[row][c].ship = shipObj;
+                    shipObj.positions.push({ row, col: c });
+                }
+            } else {
+                for (let r = row; r < row + size; r++) {
+                    board[r][col].ship = shipObj;
+                    shipObj.positions.push({ row: r, col });
+                }
+            }
+        }
+        
+        // Posiciona aleatoriamente todos os navios para um tabuleiro
+        function randomPlaceShips(board, shipDefinitions) {
+            const placedShips = [];
+            // deep copy das definições para criar objetos individuais
+            for (let def of shipDefinitions) {
+                const newShip = {
+                    name: def.name,
+                    size: def.size,
+                    hits: 0,
+                    positions: [],
+                    sunk: false
+                };
+                let placed = false;
+                let attempts = 0;
+                const maxAttempts = 2000;
+                while (!placed && attempts < maxAttempts) {
+                    const row = Math.floor(Math.random() * GRID_SIZE);
+                    const col = Math.floor(Math.random() * GRID_SIZE);
+                    const orientation = Math.random() < 0.5 ? "horizontal" : "vertical";
+                    if (canPlaceShip(board, row, col, orientation, newShip.size)) {
+                        placeShipOnBoard(board, newShip, row, col, orientation);
+                        placedShips.push(newShip);
+                        placed = true;
+                    }
+                    attempts++;
+                }
+                if (!placed) {
+                    // fallback extremo: força posição bruta (raro, mas recursão evita loop infinito)
+                    for (let i = 0; i < GRID_SIZE && !placed; i++) {
+                        for (let j = 0; j < GRID_SIZE && !placed; j++) {
+                            if (canPlaceShip(board, i, j, "horizontal", newShip.size)) {
+                                placeShipOnBoard(board, newShip, i, j, "horizontal");
+                                placedShips.push(newShip);
+                                placed = true;
+                            } else if (canPlaceShip(board, i, j, "vertical", newShip.size)) {
+                                placeShipOnBoard(board, newShip, i, j, "vertical");
+                                placedShips.push(newShip);
+                                placed = true;
+                            }
+                        }
+                    }
+                }
+            }
+            return placedShips;
+        }
+        
+        // Atualiza estado "sunk" dos navios
+        function updateShipSunkStatus(ship) {
+            if (!ship.sunk && ship.hits === ship.size) {
+                ship.sunk = true;
+                return true; // acabou de afundar
+            }
+            return false;
+        }
+        
+        // Verifica se todos os navios de uma lista estão afundados
+        function allShipsSunk(shipsList) {
+            return shipsList.every(ship => ship.hits === ship.size);
+        }
+        
+        // Processa ataque em uma célula (board, shipsList, row, col, ladoNome)
+        // Retorna objeto com { hit, sunkShipName, gameEnded }
+        function processAttack(board, shipsList, row, col, isPlayerAttacking) {
+            const cell = board[row][col];
+            if (cell.hit) return { hit: false, alreadyHit: true, sunkShipName: null, gameEnded: false };
+            
+            cell.hit = true;
+            let sunkShipName = null;
+            let shipHit = null;
+            
+            if (cell.ship !== null) {
+                cell.ship.hits++;
+                shipHit = cell.ship;
+                const justSunk = updateShipSunkStatus(cell.ship);
+                if (justSunk) {
+                    sunkShipName = cell.ship.name;
+                    // mensagem será exibida separadamente
+                }
+            }
+            
+            const gameEnded = allShipsSunk(shipsList);
+            return { hit: (cell.ship !== null), alreadyHit: false, sunkShipName, gameEnded, shipHit };
+        }
+        
+        // Renderização completa dos dois tabuleiros
+        function renderBoards() {
+            renderPlayerGrid();
+            renderComputerGrid();
+            updateStatusInfo();
+        }
+        
+        function renderPlayerGrid() {
+            playerGridEl.innerHTML = "";
+            for (let i = 0; i < GRID_SIZE; i++) {
+                for (let j = 0; j < GRID_SIZE; j++) {
+                    const cell = playerBoard[i][j];
+                    const div = document.createElement("div");
+                    div.classList.add("cell");
+                    
+                    // Exibe navios não atingidos (jogador pode ver seus navios)
+                    if (cell.hit) {
+                        if (cell.ship) {
+                            div.textContent = "💥";
+                            div.classList.add("cell-hit");
+                        } else {
+                            div.textContent = "❌";
+                            div.classList.add("cell-miss");
+                        }
+                    } else {
+                        if (cell.ship) {
+                            div.textContent = "🚢";
+                            div.classList.add("player-cell-ship");
+                        } else {
+                            div.textContent = "🌊";
+                        }
+                    }
+                    
+                    // Se algum navio está totalmente afundado, podemos dar um estilo extra
+                    if (cell.ship && cell.ship.sunk) {
+                        div.style.backgroundColor = "#5a2a1a";
+                        div.textContent = "💀";
+                    }
+                    
+                    playerGridEl.appendChild(div);
+                }
+            }
+        }
+        
+        function renderComputerGrid() {
+            computerGridEl.innerHTML = "";
+            for (let i = 0; i < GRID_SIZE; i++) {
+                for (let j = 0; j < GRID_SIZE; j++) {
+                    const cell = computerBoard[i][j];
+                    const div = document.createElement("div");
+                    div.classList.add("cell");
+                    
+                    if (cell.hit) {
+                        if (cell.ship) {
+                            div.textContent = "💥";
+                            div.classList.add("cell-hit");
+                        } else {
+                            div.textContent = "⚫";
+                            div.classList.add("cell-miss");
+                        }
+                    } else {
+                        div.textContent = "🌊";
+                        // Somente permite clique se game ativo e turno do player
+                        if (gameActive && currentTurn === "player") {
+                            div.classList.add("attackable");
+                        }
+                    }
+                    
+                    // se navio inimigo estiver afundado e já atingido (estilo exibido)
+                    if (cell.ship && cell.ship.sunk && cell.hit) {
+                        div.style.background = "#5c1e12";
+                    }
+                    
+                    // Adiciona evento de clique (delegação ou direto)
+                    if (!cell.hit && gameActive && currentTurn === "player") {
+                        div.style.cursor = "pointer";
+                        div.addEventListener("click", (function(r,c){
+                            return function() { playerAttack(r,c); };
+                        })(i,j));
+                    } else {
+                        div.style.cursor = "default";
+                    }
+                    computerGridEl.appendChild(div);
+                }
+            }
+        }
+        
+        function updateStatusInfo() {
+            // exibe quantidade de navios não afundados do jogador e do computador
+            const playerAlive = playerShips.filter(s => s.hits !== s.size).length;
+            const computerAlive = computerShips.filter(s => s.hits !== s.size).length;
+            shipsStatus.innerHTML = `🚢 Você: ${playerAlive} navios | 💻 Inimigo: ${computerAlive} navios`;
+            
+            if (gameActive) {
+                if (currentTurn === "player") {
+                    turnIndicator.innerHTML = "⚡ SEU TURNO - Atire no campo inimigo! ⚡";
+                    turnIndicator.style.color = "#FFD966";
+                } else {
+                    turnIndicator.innerHTML = "🤖 TURNO DO COMPUTADOR - Aguarde... 🤖";
+                    turnIndicator.style.color = "#C0E0FF";
+                }
+            } else {
+                turnIndicator.innerHTML = "🏆 FIM DE JOGO 🏆";
+                turnIndicator.style.color = "#ddab6b";
+            }
+        }
+        
+        function setGameMessage(msg, isError = false) {
+            gameMessage.innerHTML = msg;
+            gameMessage.style.color = isError ? "#ffc2a1" : "#f9f0cf";
+            setTimeout(() => {
+                if (gameMessage.innerHTML === msg) gameMessage.style.color = "#fff5e0";
+            }, 2200);
+        }
+        
+        // Finalizar jogo com vencedor
+        function endGame(winner) {
+            if (!gameActive) return;
+            gameActive = false;
+            if (winner === "player") {
+                setGameMessage("🏆 VITÓRIA! Você destruiu toda a frota inimiga! Parabéns, Almirante! 🎉");
+                turnIndicator.innerHTML = "🏆 VOCÊ VENCEU! 🏆";
+            } else {
+                setGameMessage("💀 Derrota! O computador afundou todos os seus navios. Recomece a guerra! 💀");
+                turnIndicator.innerHTML = "💀 COMPUTADOR VENCEU! 💀";
+            }
+            turnIndicator.style.color = "#e9b35f";
+            renderBoards(); // re-renderiza desabilitando cliques
+        }
+        
+        // JOGADA DO JOGADOR
+        function playerAttack(row, col) {
+            if (!gameActive) return;
+            if (currentTurn !== "player") {
+                setGameMessage("Aguarde o turno do computador!", true);
+                return;
+            }
+            const cell = computerBoard[row][col];
+            if (cell.hit) {
+                setGameMessage("Você já atacou esta coordenada! Escolha outra.", true);
+                return;
+            }
+            
+            // Processa ataque no tabuleiro do computador
+            const attackResult = processAttack(computerBoard, computerShips, row, col, true);
+            if (attackResult.alreadyHit) return;
+            
+            let message = attackResult.hit ? "💢 ACERTO! Causou dano!" : "💧 ÁGUA! Tiro errado.";
+            if (attackResult.sunkShipName) {
+                message = `💀💀 AFUNDADO! ${attackResult.sunkShipName} inimigo foi a pique! 💀💀`;
+                setGameMessage(message);
+            } else {
+                setGameMessage(message);
+            }
+            
+            renderBoards();
+            
+            // Verifica se o computador perdeu
+            if (attackResult.gameEnded) {
+                endGame("player");
+                return;
+            }
+            
+            // Muda turno
+            currentTurn = "computer";
+            renderBoards();
+            updateStatusInfo();
+            
+            // Inicia turno do computador após pequeno delay
+            if (computerTimeout) clearTimeout(computerTimeout);
+            computerTimeout = setTimeout(() => computerMove(), 500);
+        }
+        
+        // JOGADA DO COMPUTADOR
+        function computerMove() {
+            if (!gameActive) return;
+            if (currentTurn !== "computer") return;
+            
+            // Lista de células não atacadas no tabuleiro do jogador
+            let availableCells = [];
+            for (let i = 0; i < GRID_SIZE; i++) {
+                for (let j = 0; j < GRID_SIZE; j++) {
+                    if (!playerBoard[i][j].hit) {
+                        availableCells.push({ row: i, col: j });
+                    }
+                }
+            }
+            
+            if (availableCells.length === 0) {
+                // sem células restantes, game over (mas normalmente já terminaria antes)
+                if (allShipsSunk(playerShips)) endGame("computer");
+                return;
+            }
+            
+            const randomIndex = Math.floor(Math.random() * availableCells.length);
+            const { row, col } = availableCells[randomIndex];
+            
+            // Computador ataca a célula do jogador
+            const attackResult = processAttack(playerBoard, playerShips, row, col, false);
+            
+            let msg = attackResult.hit ? "🤖 Computador acertou um de seus navios!" : "🍀 Computador errou o tiro!";
+            if (attackResult.sunkShipName) {
+                msg = `😭 ${attackResult.sunkShipName} foi afundado pelo computador!`;
+                setGameMessage(msg);
+            } else {
+                setGameMessage(msg);
+            }
+            
+            renderBoards();
+            
+            // verifica derrota do player
+            if (attackResult.gameEnded) {
+                endGame("computer");
+                return;
+            }
+            
+            // volta turno para o jogador
+            currentTurn = "player";
+            renderBoards();   // re-renderiza para habilitar cliques novamente
+            updateStatusInfo();
+            setGameMessage("Sua vez! Atire no campo inimigo.");
+            
+            // Se jogo ainda ativo e for turno player, nada mais
+        }
+        
+        // Reset completo do jogo
+        function resetGame() {
+            // cancelar timeout pendente
+            if (computerTimeout) {
+                clearTimeout(computerTimeout);
+                computerTimeout = null;
+            }
+            
+            // Criar novos tabuleiros vazios
+            playerBoard = createEmptyBoard();
+            computerBoard = createEmptyBoard();
+            
+            // Posicionar navios aleatoriamente (ambos os lados)
+            playerShips = randomPlaceShips(playerBoard, SHIP_DEFS);
+            computerShips = randomPlaceShips(computerBoard, SHIP_DEFS);
+            
+            // Reiniciar estado do jogo
+            currentTurn = "player";
+            gameActive = true;
+            
+            // Renderizar
+            renderBoards();
+            setGameMessage("⚓ Nova batalha! Atire para afundar a frota inimiga!");
+            updateStatusInfo();
+        }
+        
+        // Inicialização ou reset
+        function initGame() {
+            resetGame();
+        }
+        
+        // Evento do botão reset
+        resetBtn.addEventListener("click", () => {
+            if (computerTimeout) clearTimeout(computerTimeout);
+            resetGame();
+        });
+        
+        // Inicia jogo
+        initGame();
+    })();
+</script>
+</body>
+</html>
